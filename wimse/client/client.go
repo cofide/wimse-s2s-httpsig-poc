@@ -1,0 +1,337 @@
+package cofide_wimse
+
+import (
+	"context"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"sync/atomic"
+	"time"
+
+	"github.com/cofide-labs/wimse-s2s/spirehelper"
+	"github.com/cofide-labs/wimse-s2s/wimse/pb"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/spiffe/go-spiffe/v2/spiffeid"
+	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
+	"github.com/yaronf/httpsign"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+var nonceCounter atomic.Uint64
+
+type Client struct {
+	*spirehelper.SpireHelper
+
+	/** FROM THIS POINT ALL PROPERTIES COME FROM net/http **/
+
+	// Transport specifies the mechanism by which individual
+	// HTTP requests are made.
+	// If nil, DefaultTransport is used.
+	Transport http.RoundTripper
+
+	// CheckRedirect specifies the policy for handling redirects.
+	// If CheckRedirect is not nil, the client calls it before
+	// following an HTTP redirect. The arguments req and via are
+	// the upcoming request and the requests made already, oldest
+	// first. If CheckRedirect returns an error, the Client's Get
+	// method returns both the previous Response (with its Body
+	// closed) and CheckRedirect's error (wrapped in a url.Error)
+	// instead of issuing the Request req.
+	// As a special case, if CheckRedirect returns ErrUseLastResponse,
+	// then the most recent response is returned with its body
+	// unclosed, along with a nil error.
+	//
+	// If CheckRedirect is nil, the Client uses its default policy,
+	// which is to stop after 10 consecutive requests.
+	CheckRedirect func(req *http.Request, via []*http.Request) error
+
+	// Jar specifies the cookie jar.
+	//
+	// The Jar is used to insert relevant cookies into every
+	// outbound Request and is updated with the cookie values
+	// of every inbound Response. The Jar is consulted for every
+	// redirect that the Client follows.
+	//
+	// If Jar is nil, cookies are only sent if they are explicitly
+	// set on the Request.
+	Jar http.CookieJar
+
+	// Timeout specifies a time limit for requests made by this
+	// Client. The timeout includes connection time, any
+	// redirects, and reading the response body. The timer remains
+	// running after Get, Head, Post, or Do return and will
+	// interrupt reading of the Response.Body.
+	//
+	// A Timeout of zero means no timeout.
+	//
+	// The Client cancels requests to the underlying Transport
+	// as if the Request's Context ended.
+	//
+	// For compatibility, the Client will also use the deprecated
+	// CancelRequest method on Transport if found. New
+	// RoundTripper implementations should use the Request's Context
+	// for cancellation instead of implementing CancelRequest.
+	Timeout time.Duration
+}
+
+func NewClient(opts ...ClientOption) *Client {
+	c := &Client{
+
+		SpireHelper: &spirehelper.SpireHelper{
+			Ctx:        context.Background(),
+			SpireAddr:  "unix:///tmp/spire.sock",
+			Authorizer: tlsconfig.AuthorizeAny(),
+		},
+	}
+
+	if os.Getenv("SPIFFE_ENDPOINT_SOCKET") != "" {
+		c.SpireAddr = os.Getenv("SPIFFE_ENDPOINT_SOCKET")
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
+}
+
+func (c *Client) GetPOPAttested(jwk jose.JSONWebKey, audience string) (string, error) {
+	// dial the SpiffeAddr with gRPC
+	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return "", fmt.Errorf("unable to dial socket: %w", err)
+	}
+
+	key, err := jwk.MarshalJSON()
+	if err != nil {
+		return "", fmt.Errorf("unable to marshal key: %w", err)
+	}
+
+	client := pb.NewSpireJWTPOPExtensionClient(cc)
+	resp, err := client.FetchJWTPOP(context.TODO(), &pb.JWTPOPRequest{
+		Key:      string(key),
+		Audience: audience,
+	})
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch JWT POP: %w", err)
+	}
+
+	svids := resp.GetSvids()
+	if len(svids) == 0 {
+		return "", fmt.Errorf("no SVIDs returned")
+	}
+
+	return svids[0].Svid, nil
+}
+
+func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
+	svid, err := c.X509Source.GetX509SVID()
+	if err != nil {
+		return nil, err
+	}
+
+	ecdsa, ok := svid.PrivateKey.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("expected ECDSA private key, got %T", svid.PrivateKey)
+	}
+
+	signedHeaders := []string{"@request-target", "Workload-Identity-Token"}
+	if req.Body != nil {
+		signedHeaders = append(signedHeaders, "content-digest")
+	}
+
+	mustSignIfPresent := []string{"content-type", "authorization", "Txn-Token"}
+	for _, header := range mustSignIfPresent {
+		if req.Header.Get(header) != "" {
+			signedHeaders = append(signedHeaders, header)
+		}
+	}
+
+	jwk := jose.JSONWebKey{
+		Key:       svid.PrivateKey.Public(),
+		Algorithm: string(jose.ES256),
+	}
+
+	token, err := c.GetPOPAttested(jwk, fmt.Sprintf("%s://%s", req.URL.Scheme, req.URL.Host))
+	if err != nil {
+		return nil, err
+	}
+
+	parsedToken, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.ES256})
+	if err != nil {
+		return nil, err
+	}
+	claims := jwt.Claims{}
+	if err := parsedToken.UnsafeClaimsWithoutVerification(&claims); err != nil {
+		return nil, err
+	}
+
+	signer, _ := httpsign.NewP256Signer(*ecdsa, httpsign.NewSignConfig().
+		SetNonce(getNonce(req)).
+		SetTag("wimse-service-to-service").
+		SetExpires(claims.Expiry.Time().Unix()),
+		httpsign.Headers(signedHeaders...))
+
+	req.Header.Set("workload-identity-token", token)
+
+	return httpsign.NewDefaultClient(httpsign.NewClientConfig().SetSignatureName("wimse").SetSigner(signer)), nil
+}
+
+func (c *Client) CloseIdleConnections() {
+	// Unimplemented due to lack of support in the underlying httpsign.Client
+}
+
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	c.EnsureSpire()
+	c.WaitReady()
+
+	client, err := c.getHttp(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	jwt, err := jose.ParseSigned(resp.Header.Get("workload-identity-token"), []jose.SignatureAlgorithm{jose.ES256})
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse token: %w", err)
+	}
+
+	var payload struct {
+		Sub string `json:"sub"`
+		Cnf struct {
+			Jwk jose.JSONWebKey `json:"jwk"`
+		} `json:"cnf"`
+	}
+	if err := json.Unmarshal(jwt.UnsafePayloadWithoutVerification(), &payload); err != nil {
+		return nil, fmt.Errorf("invalid payload: %w", err)
+	}
+
+	sid, err := spiffeid.FromString(payload.Sub)
+	if err != nil {
+		return nil, fmt.Errorf("invalid SPIFFE ID: %w", err)
+	}
+
+	jwtAuthority, err := c.GetJWTAuthority(sid)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get JWT authority: %w", err)
+	}
+	if _, err := jwt.Verify(jwtAuthority); err != nil {
+		return nil, fmt.Errorf("untrusted token: %w", err)
+	}
+
+	clientEcdsa, ok := payload.Cnf.Jwk.Key.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("invalid key type: %T", payload.Cnf.Jwk.Key)
+	}
+
+	verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers())
+	if err != nil {
+		return nil, fmt.Errorf("unable to create verifier: %w", err)
+	}
+
+	err = httpsign.VerifyResponse("wimse", *verifier, resp, req)
+	if err != nil {
+		return nil, fmt.Errorf("invalid signature: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (c *Client) Get(url string) (resp *http.Response, err error) {
+	c.EnsureSpire()
+	c.WaitReady()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req)
+}
+
+func (c *Client) Head(url string) (resp *http.Response, err error) {
+	c.EnsureSpire()
+	c.WaitReady()
+
+	req, err := http.NewRequest("HEAD", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req)
+}
+
+func (c *Client) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	c.EnsureSpire()
+	c.WaitReady()
+
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req)
+}
+
+func (c *Client) PostForm(url string, data url.Values) (resp *http.Response, err error) {
+	c.EnsureSpire()
+	c.WaitReady()
+
+	req, err := http.NewRequest("POST", url, strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req)
+}
+
+func getNonce(req *http.Request) string {
+	// generate a nonce that consits of the current time, a counter and the request's URL in sha256
+
+	// get the current time
+	now := time.Now().Unix()
+
+	// get the request's URL
+	url := req.URL.String()
+
+	// get the counter
+	counter := nonceCounter.Add(1)
+
+	data := fmt.Sprintf("%d-%d-%s", now, counter, url)
+
+	// sha256sum the data
+	h := sha256.New()
+	h.Write([]byte(data))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (s *Client) GetJWTAuthority(id spiffeid.ID) (crypto.PublicKey, error) {
+	trust, err := s.JWTSource.GetJWTBundleForTrustDomain(id.TrustDomain())
+	if err != nil {
+		return "", fmt.Errorf("unable to get JWT bundle: %w", err)
+	}
+	keys := []string{}
+	for k := range trust.JWTAuthorities() {
+		keys = append(keys, k)
+	}
+
+	if len(keys) == 0 {
+		return "", fmt.Errorf("no keys found")
+	}
+
+	return trust.JWTAuthorities()[keys[0]], nil
+}
