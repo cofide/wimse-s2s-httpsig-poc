@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	spiredevserver "github.com/cofide-labs/wimse-s2s/mini-spire/pkg/spire-devserver"
-	wimse_pb "github.com/cofide-labs/wimse-s2s/wimse/pb"
+	spiredevserver "github.com/cofide/wimse-s2s-httpsig-poc/mini-spire/pkg/spire-devserver"
+	wimse_pb "github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/spf13/cobra"
 	pb "github.com/spiffe/go-spiffe/v2/proto/spiffe/workload"
 	"google.golang.org/grpc"
@@ -82,7 +82,7 @@ func devSpireCmd() *cobra.Command {
 	f := cmd.Flags()
 	f.StringVarP(&opts.domain, "domain", "d", "example.com", "Trust domain to use for this trust zone")
 	f.StringVarP(&opts.socket, "socket", "s", "/tmp/spire.sock", "Path to the UNIX socket to listen on")
-	f.StringVarP(&opts.keyType, "key-type", "k", "rsa", "Key type to use for the CA (rsa or ecdsa)")
+	f.StringVarP(&opts.keyType, "key-type", "k", "ecdsa", "Key type to use for the CA (rsa or ecdsa)")
 
 	return cmd
 }

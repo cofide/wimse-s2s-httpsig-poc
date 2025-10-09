@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/cofide-labs/wimse-s2s/internal/backoff"
+	"github.com/cofide/wimse-s2s-httpsig-poc/internal/backoff"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 )

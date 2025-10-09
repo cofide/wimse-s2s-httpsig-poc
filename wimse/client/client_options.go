@@ -3,7 +3,7 @@ package cofide_wimse
 import (
 	"context"
 
-	"github.com/cofide-labs/wimse-s2s/id"
+	"github.com/cofide/wimse-s2s-httpsig-poc/id"
 )
 
 type ClientOption func(*Client)

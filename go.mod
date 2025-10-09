@@ -1,4 +1,4 @@
-module github.com/cofide-labs/wimse-s2s
+module github.com/cofide/wimse-s2s-httpsig-poc
 
 go 1.23.6
 

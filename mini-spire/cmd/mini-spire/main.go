@@ -6,8 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd *cobra.Command
-
 func main() {
 	cmd := &cobra.Command{
 		Use:          "mini-spire",
@@ -19,7 +17,7 @@ func main() {
 		devSpireCmd(),
 	)
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

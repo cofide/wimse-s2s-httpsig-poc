@@ -14,8 +14,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cofide-labs/wimse-s2s/id"
-	wimse_pb "github.com/cofide-labs/wimse-s2s/wimse/pb"
+	"github.com/cofide/wimse-s2s-httpsig-poc/id"
+	wimse_pb "github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spiffe/go-spiffe/v2/bundle/jwtbundle"
 	pb "github.com/spiffe/go-spiffe/v2/proto/spiffe/workload"

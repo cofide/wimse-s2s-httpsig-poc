@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cofide-labs/wimse-s2s/spirehelper"
-	"github.com/cofide-labs/wimse-s2s/wimse/pb"
+	"github.com/cofide/wimse-s2s-httpsig-poc/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
@@ -203,6 +203,23 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// log all request and response headers
+
+	fmt.Println("Request:")
+	fmt.Printf("%s %s %s\n", req.Method, req.URL.Path, req.Proto)
+	for k, v := range req.Header {
+		fmt.Printf("%s: %s\n", k, strings.Join(v, ", "))
+	}
+
+	fmt.Println("")
+	fmt.Println("Response:")
+	fmt.Printf("%s %s\n", resp.Proto, resp.Status)
+	for k, v := range resp.Header {
+		fmt.Printf("%s: %s\n", k, strings.Join(v, ", "))
+	}
+
+	// verify the response
 
 	jwt, err := jose.ParseSigned(resp.Header.Get("workload-identity-token"), []jose.SignatureAlgorithm{jose.ES256})
 	if err != nil {
