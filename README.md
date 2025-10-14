@@ -4,9 +4,9 @@ This is a demo implementation of [WIMSE Service to Service Authentication](https
 
 This demo utilises a demonstrator implementation `mini-spire` that can issue the correct key material to client and server. This is a simple way to get SPIFFE identities issued without the need of a whole SPIRE setup. As the setup of an SVID and WIT resemble each other a lot at time of writing this demo we built on top of this system with adding one gRPC call needed. We also switched the default to ECDSA certificates
 
-We chose to develop this demo of WIMSE with HTTP signatures as a demo of solving the usecase where you want authenticated and signed messaging with a middlebox.
+We chose to develop this demo of WIMSE with HTTP signatures as a demo of solving the use case where you want authenticated and signed messaging with a middlebox.
 
-A usecase we often saw where using the more "traditional" mTLS approach was not possible.
+A use case we often saw where using the more "traditional" mTLS approach was not possible.
 
 ## How it works
 
