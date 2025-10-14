@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	minispire "github.com/cofide/minispire/pkg/spire-devserver"
 	spiredevserver "github.com/cofide/minispire/pkg/spire-devserver"
 	wimse_pb "github.com/cofide/minispire/pkg/wimse"
 	pb "github.com/spiffe/go-spiffe/v2/proto/spiffe/workload"
@@ -24,7 +23,7 @@ func main() {
 	fmt.Println("Building in-memory CA")
 
 	kt := spiredevserver.KeyTypeECDSAP256
-	ca, err := minispire.NewInMemoryCA(kt)
+	ca, err := spiredevserver.NewInMemoryCA(kt)
 	if err != nil {
 		log.Fatalf("failed to create in-memory CA: %v", err)
 	}
