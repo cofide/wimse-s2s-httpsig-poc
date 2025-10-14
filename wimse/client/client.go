@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/cofide/wimse-s2s-httpsig-poc/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
 	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
