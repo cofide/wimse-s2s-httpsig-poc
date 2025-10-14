@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	trustDomain = "example.org"
+trustDomain = "example.com"
 	spireSocket = "/tmp/spire.sock"
 )
 
