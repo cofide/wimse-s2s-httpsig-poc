@@ -2,10 +2,10 @@
 
 This is repo is a labs demo implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol "Option 2: Authentication Based on HTTP Message Signatures".
 
-This demo is built upon the Spire but utilises a fork of cofidectl's mini-spire feature that can issue the correct key material to client and server.
-We used mini-spire here as it is a simple way to get SPIFFE identities issued without the need of a whole Spire setup. As the setup of an SVID and WIT resamble eachother a lot at time of writing this demo we built on top of this system with adding one gRPC call needed. We also switched the default to ECDSA certificates
+This demo utilises a demonstrator implementation `mini-spire` that can issue the correct key material to client and server. This is a simple way to get SPIFFE identities issued without the need of a whole SPIRE setup. As the setup of an SVID and WIT resemble each other a lot at time of writing this demo we built on top of this system with adding one gRPC call needed. We also switched the default to ECDSA certificates
 
-We chose to develop this demo of WIMSE with HTTP signatures as a demo of solving the usecase where you want authenticated and signed messaging with a middlebox in the middle.
+We chose to develop this demo of WIMSE with HTTP signatures as a demo of solving the usecase where you want authenticated and signed messaging with a middlebox.
+
 A usecase we often saw where using the more "traditional" mTLS approach was not possible.
 
 ## How it works
