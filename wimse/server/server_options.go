@@ -3,7 +3,7 @@ package cofide_wimse_server
 import (
 	"context"
 
-	"github.com/cofide/wimse-s2s-httpsig-poc/id"
+	"github.com/cofide/cofide-sdk-go/pkg/id"
 )
 
 type ServerOption func(*Server)

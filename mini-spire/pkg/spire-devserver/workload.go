@@ -14,7 +14,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/cofide/wimse-s2s-httpsig-poc/id"
+	"github.com/cofide/cofide-sdk-go/pkg/id"
 	wimse_pb "github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spiffe/go-spiffe/v2/bundle/jwtbundle"
@@ -260,7 +260,7 @@ func (w *WorkloadHandler) generateSpiffeID(ctx context.Context) (*id.SPIFFEID, e
 		info["bin"] = ai.Caller.BinaryName
 	}
 
-	return id.CreateID(w.c.Domain, info)
+	return id.NewID(w.c.Domain, info)
 }
 
 func (w *WorkloadHandler) FetchJWTPOP(ctx context.Context, req *wimse_pb.JWTPOPRequest) (*wimse_pb.JWTPOPResponse, error) {
