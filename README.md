@@ -40,7 +40,7 @@ A use case we often saw where using the more "traditional" mTLS approach was not
 
 To run the demo you need to run the mini-spire server:
 ```
-go run ./mini-spire/cmd/mini-spire serve
+go run ./mini-spire
 ```
 
 Then in another terminal run the server:
