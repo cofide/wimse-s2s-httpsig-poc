@@ -1,6 +1,6 @@
 # WIMSE S2S with HTTP Signatures demo
 
-This is repo is a labs demo implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol "Option 2: Authentication Based on HTTP Message Signatures".
+This is a demo implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol "Option 2: Authentication Based on HTTP Message Signatures".
 
 This demo utilises a demonstrator implementation `mini-spire` that can issue the correct key material to client and server. This is a simple way to get SPIFFE identities issued without the need of a whole SPIRE setup. As the setup of an SVID and WIT resemble each other a lot at time of writing this demo we built on top of this system with adding one gRPC call needed. We also switched the default to ECDSA certificates
 
