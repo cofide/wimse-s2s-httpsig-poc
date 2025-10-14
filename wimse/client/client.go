@@ -144,7 +144,7 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, fmt.Errorf("expected ECDSA private key, got %T", svid.PrivateKey)
 	}
 
-	signedHeaders := []string{"@request-target", "Workload-Identity-Token"}
+	signedHeaders := []string{"@method", "@request-target", "Workload-Identity-Token"}
 	if req.Body != nil {
 		signedHeaders = append(signedHeaders, "content-digest")
 	}
