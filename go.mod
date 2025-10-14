@@ -1,8 +1,8 @@
 module github.com/cofide/wimse-s2s-httpsig-poc
 
-go 1.24.4
+go 1.25
 
-toolchain go1.24.9
+toolchain go1.25.3
 
 require (
 	github.com/cofide/cofide-sdk-go v0.4.0
