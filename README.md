@@ -38,9 +38,9 @@ A use case we often saw where using the more "traditional" mTLS approach was not
 
 ## Running the demo
 
-To run the demo you need to run the mini-spire server:
+To run the demo you need to run a `cofide/minispire` server:
 ```
-go run ./mini-spire
+go run github.com/cofide/minispire/cmd@v0.1.1
 ```
 
 Then in another terminal run the server:
