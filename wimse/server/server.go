@@ -14,8 +14,8 @@ import (
 	"os"
 	"time"
 
+	pb "github.com/cofide/minispire/pkg/wimse"
 	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
-	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/pb"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
