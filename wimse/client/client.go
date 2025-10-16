@@ -116,11 +116,8 @@ func (c *Client) GetPOPAttested(jwk jose.JSONWebKey, audience string) (string, e
 		return "", fmt.Errorf("unable to marshal key: %w", err)
 	}
 
-	client := pb.NewSpireJWTPOPExtensionClient(cc)
-	resp, err := client.FetchJWTPOP(context.TODO(), &pb.JWTPOPRequest{
-		Key:      string(key),
-		Audience: audience,
-	})
+	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
+	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{Key: string(key)})
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch JWT POP: %w", err)
 	}
@@ -130,7 +127,7 @@ func (c *Client) GetPOPAttested(jwk jose.JSONWebKey, audience string) (string, e
 		return "", fmt.Errorf("no SVIDs returned")
 	}
 
-	return svids[0].Svid, nil
+	return svids[0].WitSvid, nil
 }
 
 func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
