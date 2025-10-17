@@ -4,10 +4,13 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -84,32 +87,23 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		sid, err := spiffeid.FromString(payload.Sub)
+		_, err = spiffeid.FromString(payload.Sub)
 		if err != nil {
 			log.Printf("Invalid SPIFFE ID: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// verify request
-		jwtAuthority, err := s.GetJWTAuthority(sid)
-		if err != nil {
-			log.Printf("Unable to get JWT authority: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		if _, err := jwt.Verify(jwtAuthority); err != nil {
-			log.Printf("Untrustred token: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+		slog.Info("wit", "wit", r.Header.Get("workload-identity-token"))
 
-		clientEcdsa, ok := payload.Cnf.Jwk.Key.(*ecdsa.PublicKey)
-		if !ok {
-			log.Printf("Invalid key type: %T\n", payload.Cnf.Jwk.Key)
+		keyBytes := payload.Cnf.Jwk.Key.([]byte)
+		pubInterface, err := x509.ParsePKIXPublicKey(keyBytes)
+		if err != nil {
+			log.Printf("failed to parse public key: %v", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		clientEcdsa := pubInterface.(*ecdsa.PublicKey)
 
 		verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers("@request-target", "Workload-Identity-Token"))
 		if err != nil {
@@ -125,30 +119,9 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		// sign the response
-
-		svid, err := s.X509Source.GetX509SVID()
+		svid, err := s.GetPOPAttested()
 		if err != nil {
-			log.Printf("Unable to get SVID: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		ecdsa, ok := svid.PrivateKey.(*ecdsa.PrivateKey)
-		if !ok {
-			log.Printf("Invalid key type: %T\n", svid.PrivateKey)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		jwk := jose.JSONWebKey{
-			Key:       svid.PrivateKey.Public(),
-			Algorithm: string(jose.ES256),
-		}
-
-		token, err := s.GetPOPAttested(jwk, fmt.Sprintf("%s://%s", r.Host, r.Proto))
-		if err != nil {
-			log.Printf("Unable to get POP attested token: %v\n", err)
+			log.Printf("Unable to get WIT SVID: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -157,7 +130,7 @@ func (s *Server) getHttp() *http.Server {
 		upstreamHandler.ServeHTTP(capture, r)
 
 		resp := capture.Result()
-		resp.Header.Set("workload-identity-token", token)
+		resp.Header.Set("workload-identity-token", svid.WitSvid)
 
 		resp.Header.Set("content-length", fmt.Sprintf("%d", capture.Body.Len()))
 		if resp.Header.Get("Date") == "" {
@@ -182,8 +155,12 @@ func (s *Server) getHttp() *http.Server {
 				signedHeaders = append(signedHeaders, header)
 			}
 		}
+		x, err := parseWITSVIDKey(svid.WitSvidKey)
+		if err != nil {
+			return
+		}
 
-		signer, err := httpsign.NewP256Signer(*ecdsa, httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
+		signer, err := httpsign.NewP256Signer(*x, httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -246,6 +223,20 @@ func (s *Server) getHttp() *http.Server {
 	return s.http
 }
 
+func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
+	}
+
+	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	return parsedKey.(*ecdsa.PrivateKey), nil
+}
+
 func (w *Server) Close() error {
 	return w.getHttp().Close()
 }
@@ -297,28 +288,23 @@ func (s *Server) GetJWTAuthority(id spiffeid.ID) (crypto.PublicKey, error) {
 	return trust.JWTAuthorities()[keys[0]], nil
 }
 
-func (c *Server) GetPOPAttested(jwk jose.JSONWebKey, audience string) (string, error) {
+func (c *Server) GetPOPAttested() (*pb.WITSVID, error) {
 	// dial the SpiffeAddr with gRPC
 	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return "", err
-	}
-
-	key, err := jwk.MarshalJSON()
-	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{Key: string(key)})
+	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	svids := resp.GetSvids()
 	if len(svids) == 0 {
-		return "", fmt.Errorf("no SVIDs returned")
+		return nil, fmt.Errorf("no SVIDs returned")
 	}
 
-	return svids[0].WitSvid, nil
+	return svids[0], nil
 }

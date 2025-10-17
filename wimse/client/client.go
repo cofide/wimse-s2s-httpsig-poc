@@ -5,9 +5,12 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -104,43 +107,28 @@ func NewClient(opts ...ClientOption) *Client {
 	return c
 }
 
-func (c *Client) GetPOPAttested(jwk jose.JSONWebKey, audience string) (string, error) {
+func (c *Client) GetPOPAttested() (*pb.WITSVID, error) {
 	// dial the SpiffeAddr with gRPC
 	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return "", fmt.Errorf("unable to dial socket: %w", err)
-	}
-
-	key, err := jwk.MarshalJSON()
-	if err != nil {
-		return "", fmt.Errorf("unable to marshal key: %w", err)
+		return nil, fmt.Errorf("unable to dial socket: %w", err)
 	}
 
 	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{Key: string(key)})
+	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
 	if err != nil {
-		return "", fmt.Errorf("unable to fetch JWT POP: %w", err)
+		return nil, fmt.Errorf("unable to fetch JWT POP: %w", err)
 	}
 
 	svids := resp.GetSvids()
 	if len(svids) == 0 {
-		return "", fmt.Errorf("no SVIDs returned")
+		return nil, fmt.Errorf("no SVIDs returned")
 	}
 
-	return svids[0].WitSvid, nil
+	return svids[0], nil
 }
 
 func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
-	svid, err := c.X509Source.GetX509SVID()
-	if err != nil {
-		return nil, err
-	}
-
-	ecdsa, ok := svid.PrivateKey.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("expected ECDSA private key, got %T", svid.PrivateKey)
-	}
-
 	signedHeaders := []string{"@method", "@request-target", "Workload-Identity-Token"}
 	if req.Body != nil {
 		signedHeaders = append(signedHeaders, "content-digest")
@@ -153,17 +141,12 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		}
 	}
 
-	jwk := jose.JSONWebKey{
-		Key:       svid.PrivateKey.Public(),
-		Algorithm: string(jose.ES256),
-	}
-
-	token, err := c.GetPOPAttested(jwk, fmt.Sprintf("%s://%s", req.URL.Scheme, req.URL.Host))
+	svid, err := c.GetPOPAttested()
 	if err != nil {
 		return nil, err
 	}
 
-	parsedToken, err := jwt.ParseSigned(token, []jose.SignatureAlgorithm{jose.ES256})
+	parsedToken, err := jwt.ParseSigned(svid.WitSvid, []jose.SignatureAlgorithm{jose.ES256})
 	if err != nil {
 		return nil, err
 	}
@@ -172,15 +155,33 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
-	signer, _ := httpsign.NewP256Signer(*ecdsa, httpsign.NewSignConfig().
+	x, err := parseWITSVIDKey(svid.WitSvidKey)
+	if err != nil {
+		return nil, err
+	}
+	signer, _ := httpsign.NewP256Signer(*x, httpsign.NewSignConfig().
 		SetNonce(getNonce(req)).
 		SetTag("wimse-service-to-service").
 		SetExpires(claims.Expiry.Time().Unix()),
 		httpsign.Headers(signedHeaders...))
 
-	req.Header.Set("workload-identity-token", token)
+	req.Header.Set("workload-identity-token", svid.WitSvid)
 
 	return httpsign.NewDefaultClient(httpsign.NewClientConfig().SetSignatureName("wimse").SetSigner(signer)), nil
+}
+
+func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
+	}
+
+	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	return parsedKey.(*ecdsa.PrivateKey), nil
 }
 
 func (c *Client) CloseIdleConnections() {
@@ -233,23 +234,18 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("invalid payload: %w", err)
 	}
 
-	sid, err := spiffeid.FromString(payload.Sub)
+	_, err = spiffeid.FromString(payload.Sub)
 	if err != nil {
 		return nil, fmt.Errorf("invalid SPIFFE ID: %w", err)
 	}
 
-	jwtAuthority, err := c.GetJWTAuthority(sid)
+	keyBytes := payload.Cnf.Jwk.Key.([]byte)
+	pubInterface, err := x509.ParsePKIXPublicKey(keyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get JWT authority: %w", err)
+		log.Printf("failed to parse public key: %v", err)
+		return nil, fmt.Errorf("unable to parse key: %w", err)
 	}
-	if _, err := jwt.Verify(jwtAuthority); err != nil {
-		return nil, fmt.Errorf("untrusted token: %w", err)
-	}
-
-	clientEcdsa, ok := payload.Cnf.Jwk.Key.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("invalid key type: %T", payload.Cnf.Jwk.Key)
-	}
+	clientEcdsa := pubInterface.(*ecdsa.PublicKey)
 
 	verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers())
 	if err != nil {
