@@ -1,6 +1,8 @@
 # POC Demo of WIMSE S2S with HTTP Message Signatures
 
-This is a POC implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). [HTTP Message Signature](https://datatracker.ietf.org/doc/rfc9421/) is an adopted IETF standard (RFC 9421) to create and verify signatures for specific components of an HTTP message, allowing for message integrity verification even when the full message isn't known to the signer or has been modified by intermediaries.
+This is a POC implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). 
+
+[HTTP Message Signature](https://datatracker.ietf.org/doc/rfc9421/) is an adopted IETF standard (RFC 9421) to create and verify signatures for specific components of an HTTP message, allowing for message integrity verification even when the full message isn't known to the signer or has been modified by intermediaries.
 
 This demo utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue WIMSE Workload Identity Token (WIT) SVIDs to a client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup. As the JWT-SVID and WIT resemble each other a lot at the time of writing, this demo is built on top of `minispire` with the addition of a gRPC call. We also switched the default to ECDSA certificates.
 
