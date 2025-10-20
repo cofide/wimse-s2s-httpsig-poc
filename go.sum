@@ -4,8 +4,8 @@ github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883 h1:bvNMNQO63//z+xNg
 github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883/go.mod h1:rCTlJbsFo29Kk6CurOXKm700vrz8f0KW0JNfpkRJY/8=
 github.com/cofide/cofide-sdk-go v0.4.0 h1:1mbn1Slszz3onkp5SHf332MRDJE4ui4uie5Z2OZmhjQ=
 github.com/cofide/cofide-sdk-go v0.4.0/go.mod h1:MJ0iPUH0AmYZebiH5trHRWMvvBo+jLc5J4HwY7bcS0g=
-github.com/cofide/minispire v0.1.2-0.20251020102413-3e61c0d25cf2 h1:eIwPk7DMevssvLNNUWBFBdhWgmHpeelar4HLuLDLbwA=
-github.com/cofide/minispire v0.1.2-0.20251020102413-3e61c0d25cf2/go.mod h1:i6vJa16JGVzTfb9154xr9oZqgrCjOditbrSFPGmr1ds=
+github.com/cofide/minispire v0.2.0 h1:wcWDvcaPPpcCJWt95oWA6I4w6s+G5b60inCEswZsbbU=
+github.com/cofide/minispire v0.2.0/go.mod h1:i6vJa16JGVzTfb9154xr9oZqgrCjOditbrSFPGmr1ds=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -39,7 +39,7 @@ This is a use case we often see where using the more "traditional" mTLS approach
 
 To run the demo you need to run a `cofide/minispire` server:
 ```
-go run github.com/cofide/minispire/cmd@v0.1.1
+go run github.com/cofide/minispire/cmd@v0.2.0
 ```
 
 Then in another terminal run the server:
