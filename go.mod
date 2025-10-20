@@ -1,12 +1,10 @@
 module github.com/cofide/wimse-s2s-httpsig-poc
 
-go 1.25.2
-
-toolchain go1.25.3
+go 1.25.3
 
 require (
 	github.com/cofide/cofide-sdk-go v0.4.0
-	github.com/cofide/minispire v0.1.2-0.20251017130604-c0622291b20e
+	github.com/cofide/minispire v0.1.2-0.20251020102413-3e61c0d25cf2
 	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/spiffe/go-spiffe/v2 v2.6.0
 	github.com/yaronf/httpsign v0.3.1
