@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,12 +18,11 @@ import (
 
 	pb "github.com/cofide/minispire/pkg/wimse"
 	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/shared"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/yaronf/httpsign"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Server struct {
@@ -119,7 +117,7 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		svid, err := s.GetPOPAttested()
+		svid, err := s.GetWITSVID()
 		if err != nil {
 			log.Printf("Unable to get WIT SVID: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -155,12 +153,14 @@ func (s *Server) getHttp() *http.Server {
 				signedHeaders = append(signedHeaders, header)
 			}
 		}
-		x, err := parseWITSVIDKey(svid.WitSvidKey)
+
+		parsedWITSVIDKey, err := shared.ParseWITSVIDKey(svid.WitSvidKey)
 		if err != nil {
 			return
 		}
 
-		signer, err := httpsign.NewP256Signer(*x, httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
+		signer, err := httpsign.NewP256Signer(*parsedWITSVIDKey,
+			httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -223,20 +223,6 @@ func (s *Server) getHttp() *http.Server {
 	return s.http
 }
 
-func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
-	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
-	}
-
-	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
-	}
-
-	return parsedKey.(*ecdsa.PrivateKey), nil
-}
-
 func (w *Server) Close() error {
 	return w.getHttp().Close()
 }
@@ -288,23 +274,6 @@ func (s *Server) GetJWTAuthority(id spiffeid.ID) (crypto.PublicKey, error) {
 	return trust.JWTAuthorities()[keys[0]], nil
 }
 
-func (c *Server) GetPOPAttested() (*pb.WITSVID, error) {
-	// dial the SpiffeAddr with gRPC
-	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
-	if err != nil {
-		return nil, err
-	}
-
-	svids := resp.GetSvids()
-	if len(svids) == 0 {
-		return nil, fmt.Errorf("no SVIDs returned")
-	}
-
-	return svids[0], nil
+func (c *Server) GetWITSVID() (*pb.WITSVID, error) {
+	return shared.GetWITSVID(c.SpireAddr)
 }

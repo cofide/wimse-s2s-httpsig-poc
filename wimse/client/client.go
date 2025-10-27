@@ -2,11 +2,9 @@ package cofide_wimse
 
 import (
 	"context"
-	"crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,13 +18,12 @@ import (
 
 	pb "github.com/cofide/minispire/pkg/wimse"
 	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/shared"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/yaronf/httpsign"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var nonceCounter atomic.Uint64
@@ -107,25 +104,8 @@ func NewClient(opts ...ClientOption) *Client {
 	return c
 }
 
-func (c *Client) GetPOPAttested() (*pb.WITSVID, error) {
-	// dial the SpiffeAddr with gRPC
-	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("unable to dial socket: %w", err)
-	}
-
-	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch JWT POP: %w", err)
-	}
-
-	svids := resp.GetSvids()
-	if len(svids) == 0 {
-		return nil, fmt.Errorf("no SVIDs returned")
-	}
-
-	return svids[0], nil
+func (c *Client) GetWITSVID() (*pb.WITSVID, error) {
+	return shared.GetWITSVID(c.SpireAddr)
 }
 
 func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
@@ -141,7 +121,7 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		}
 	}
 
-	svid, err := c.GetPOPAttested()
+	svid, err := c.GetWITSVID()
 	if err != nil {
 		return nil, err
 	}
@@ -155,11 +135,11 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
-	x, err := parseWITSVIDKey(svid.WitSvidKey)
+	parsedWITSVIDKey, err := shared.ParseWITSVIDKey(svid.WitSvidKey)
 	if err != nil {
 		return nil, err
 	}
-	signer, _ := httpsign.NewP256Signer(*x, httpsign.NewSignConfig().
+	signer, _ := httpsign.NewP256Signer(*parsedWITSVIDKey, httpsign.NewSignConfig().
 		SetNonce(getNonce(req)).
 		SetTag("wimse-service-to-service").
 		SetExpires(claims.Expiry.Time().Unix()),
@@ -168,20 +148,6 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 	req.Header.Set("workload-identity-token", svid.WitSvid)
 
 	return httpsign.NewDefaultClient(httpsign.NewClientConfig().SetSignatureName("wimse").SetSigner(signer)), nil
-}
-
-func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
-	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
-	}
-
-	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
-	}
-
-	return parsedKey.(*ecdsa.PrivateKey), nil
 }
 
 func (c *Client) CloseIdleConnections() {
@@ -310,38 +276,11 @@ func (c *Client) PostForm(url string, data url.Values) (resp *http.Response, err
 }
 
 func getNonce(req *http.Request) string {
-	// generate a nonce that consits of the current time, a counter and the request's URL in sha256
-
-	// get the current time
 	now := time.Now().Unix()
-
-	// get the request's URL
 	url := req.URL.String()
-
-	// get the counter
 	counter := nonceCounter.Add(1)
-
 	data := fmt.Sprintf("%d-%d-%s", now, counter, url)
-
-	// sha256sum the data
 	h := sha256.New()
 	h.Write([]byte(data))
 	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func (s *Client) GetJWTAuthority(id spiffeid.ID) (crypto.PublicKey, error) {
-	trust, err := s.JWTSource.GetJWTBundleForTrustDomain(id.TrustDomain())
-	if err != nil {
-		return "", fmt.Errorf("unable to get JWT bundle: %w", err)
-	}
-	keys := []string{}
-	for k := range trust.JWTAuthorities() {
-		keys = append(keys, k)
-	}
-
-	if len(keys) == 0 {
-		return "", fmt.Errorf("no keys found")
-	}
-
-	return trust.JWTAuthorities()[keys[0]], nil
 }
