@@ -5,7 +5,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -154,12 +153,14 @@ func (s *Server) getHttp() *http.Server {
 				signedHeaders = append(signedHeaders, header)
 			}
 		}
-		x, err := parseWITSVIDKey(svid.WitSvidKey)
+
+		parsedWITSVIDKey, err := shared.ParseWITSVIDKey(svid.WitSvidKey)
 		if err != nil {
 			return
 		}
 
-		signer, err := httpsign.NewP256Signer(*x, httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
+		signer, err := httpsign.NewP256Signer(*parsedWITSVIDKey,
+			httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -220,20 +221,6 @@ func (s *Server) getHttp() *http.Server {
 	}
 
 	return s.http
-}
-
-func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
-	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
-	}
-
-	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
-	}
-
-	return parsedKey.(*ecdsa.PrivateKey), nil
 }
 
 func (w *Server) Close() error {

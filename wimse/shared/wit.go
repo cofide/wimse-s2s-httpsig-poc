@@ -2,6 +2,9 @@ package shared
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/x509"
+	"encoding/base64"
 	"fmt"
 
 	pb "github.com/cofide/minispire/pkg/wimse"
@@ -28,4 +31,18 @@ func GetWITSVID(spireAddr string) (*pb.WITSVID, error) {
 	}
 
 	return svids[0], nil
+}
+
+func ParseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
+	}
+
+	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	return parsedKey.(*ecdsa.PrivateKey), nil
 }
