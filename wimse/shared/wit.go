@@ -19,7 +19,7 @@ func GetWITSVID(spireAddr string) (*pb.WITSVID, error) {
 	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
 	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("unable to fetch JWT POP: %w", err)
+		return nil, fmt.Errorf("unable to fetch WIT SVID: %w", err)
 	}
 
 	svids := resp.GetSvids()
