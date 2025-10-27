@@ -20,13 +20,12 @@ import (
 
 	pb "github.com/cofide/minispire/pkg/wimse"
 	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/shared"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/yaronf/httpsign"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var nonceCounter atomic.Uint64
@@ -107,25 +106,8 @@ func NewClient(opts ...ClientOption) *Client {
 	return c
 }
 
-func (c *Client) GetPOPAttested() (*pb.WITSVID, error) {
-	// dial the SpiffeAddr with gRPC
-	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("unable to dial socket: %w", err)
-	}
-
-	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("unable to fetch JWT POP: %w", err)
-	}
-
-	svids := resp.GetSvids()
-	if len(svids) == 0 {
-		return nil, fmt.Errorf("no SVIDs returned")
-	}
-
-	return svids[0], nil
+func (c *Client) GetWITSVID() (*pb.WITSVID, error) {
+	return shared.GetWITSVID(c.SpireAddr)
 }
 
 func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
@@ -141,7 +123,7 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		}
 	}
 
-	svid, err := c.GetPOPAttested()
+	svid, err := c.GetWITSVID()
 	if err != nil {
 		return nil, err
 	}

@@ -19,12 +19,11 @@ import (
 
 	pb "github.com/cofide/minispire/pkg/wimse"
 	"github.com/cofide/wimse-s2s-httpsig-poc/internal/spirehelper"
+	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/shared"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/yaronf/httpsign"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Server struct {
@@ -119,7 +118,7 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		svid, err := s.GetPOPAttested()
+		svid, err := s.GetWITSVID()
 		if err != nil {
 			log.Printf("Unable to get WIT SVID: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -288,23 +287,6 @@ func (s *Server) GetJWTAuthority(id spiffeid.ID) (crypto.PublicKey, error) {
 	return trust.JWTAuthorities()[keys[0]], nil
 }
 
-func (c *Server) GetPOPAttested() (*pb.WITSVID, error) {
-	// dial the SpiffeAddr with gRPC
-	cc, err := grpc.DialContext(context.TODO(), c.SpireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, err
-	}
-
-	client := pb.NewMiniSPIREWorkloadAPIClient(cc)
-	resp, err := client.MintWITSVID(context.TODO(), &pb.WITSVIDRequest{})
-	if err != nil {
-		return nil, err
-	}
-
-	svids := resp.GetSvids()
-	if len(svids) == 0 {
-		return nil, fmt.Errorf("no SVIDs returned")
-	}
-
-	return svids[0], nil
+func (c *Server) GetWITSVID() (*pb.WITSVID, error) {
+	return shared.GetWITSVID(c.SpireAddr)
 }
