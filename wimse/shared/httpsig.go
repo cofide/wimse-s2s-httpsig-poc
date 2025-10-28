@@ -7,7 +7,7 @@ import (
 
 type SignerOption func(*httpsign.SignConfig)
 
-// WithNonce sets the nonce in the signer config.
+// WithNonce sets the nonce in the signer config
 func WithNonce(nonce string) SignerOption {
 	return func(cfg *httpsign.SignConfig) {
 		if nonce != "" {
@@ -16,11 +16,20 @@ func WithNonce(nonce string) SignerOption {
 	}
 }
 
-// WithClaims sets expiry based on JWT claims.
+// WithClaims sets expiry based on JWT claims
 func WithClaims(claims *jwt.Claims) SignerOption {
 	return func(cfg *httpsign.SignConfig) {
 		if claims != nil && !claims.Expiry.Time().IsZero() {
 			cfg.SetExpires(claims.Expiry.Time().Unix())
+		}
+	}
+}
+
+// WithKeyID sets the key ID returned as a signature parameter
+func WithKeyID(keyID string) SignerOption {
+	return func(cfg *httpsign.SignConfig) {
+		if keyID != "" {
+			cfg.SetKeyID(keyID)
 		}
 	}
 }

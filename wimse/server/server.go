@@ -154,7 +154,10 @@ func (s *Server) getHttp() *http.Server {
 			}
 		}
 
-		signer, err := shared.GetWITHTTPSigner(svid.WitSvidKey, signedHeaders)
+		signer, err := shared.GetWITHTTPSigner(
+			svid.WitSvidKey,
+			signedHeaders,
+			shared.WithKeyID("wimse"))
 
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
