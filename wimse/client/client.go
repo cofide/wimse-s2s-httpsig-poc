@@ -135,15 +135,16 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
-	parsedWITSVIDKey, err := shared.ParseWITSVIDKey(svid.WitSvidKey)
+	signer, err := shared.GetWITHTTPSigner(
+		svid.WitSvidKey,
+		signedHeaders,
+		shared.WithNonce(getNonce(req)),
+		shared.WithClaims(&claims),
+	)
+
 	if err != nil {
 		return nil, err
 	}
-	signer, _ := httpsign.NewP256Signer(*parsedWITSVIDKey, httpsign.NewSignConfig().
-		SetNonce(getNonce(req)).
-		SetTag("wimse-service-to-service").
-		SetExpires(claims.Expiry.Time().Unix()),
-		httpsign.Headers(signedHeaders...))
 
 	req.Header.Set("workload-identity-token", svid.WitSvid)
 

@@ -154,13 +154,11 @@ func (s *Server) getHttp() *http.Server {
 			}
 		}
 
-		parsedWITSVIDKey, err := shared.ParseWITSVIDKey(svid.WitSvidKey)
-		if err != nil {
-			return
-		}
+		signer, err := shared.GetWITHTTPSigner(
+			svid.WitSvidKey,
+			signedHeaders,
+			shared.WithKeyID("wimse"))
 
-		signer, err := httpsign.NewP256Signer(*parsedWITSVIDKey,
-			httpsign.NewSignConfig().SetKeyID("wimse"), httpsign.Headers(signedHeaders...))
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
