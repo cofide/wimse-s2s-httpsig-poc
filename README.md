@@ -13,24 +13,23 @@ In this example, we use WIMSE with HTTP Message Signatures to explore the use ca
 ```
                              ┌─────────────────┐
                              │                 │
-  +--------------------------│   minispire     │<-----------------------+
-  |                          │    Server       │                        |
-  |              +---------->│                 │-----------+            |
-  |              |           └─────────────────┘           |            |
-  │              |                                         │            |
-  │ Issues WIT-  │ Sign JWT                                │ Issues SVID|
-  │    SVID      │ POP                                     │  + JWT CA  | Sign JWT
-  │              │                                         │            | POP
-  ▼              │                                         ▼            |
-┌─────────────────┐          ┌──────────────────┐     ┌─────────────────┐
-│                 │          │                  │     │                 │
+      +----------------------│   minispire     │-------------+
+      |                      │    Server       │             |             
+      |                      │                 │             |            
+      |                      └─────────────────┘             |            
+      │ Issues WIT-                                          │ Issues WIT-
+      │    SVID                                              │    SVID
+      │              HTTP                                    │     
+      ▼              request                                 ▼            
+┌─────────────-───┐  signed  ┌──────────────────┐     ┌─────────────────┐
+│                 │  w. WIT  │                  │     │                 │
 │  WIMSE enabled  │─────────▶│    Middlebox     │────▶│  WIMSE enabled  │
-│  Client         │   HTTP   │  (e.g., CDN/     │     │  Server         │
-│                 │  Request │   Cloudflare)    │     │                 │
-└─────────────────┘   with   │                  |     └─────────────────┘
-                      HTTP   │  Can inspect     │     
-                      Sign   │  but not modify  │     
-                      + WIT  │  the signed data │     
+│  Client         │          │  (e.g., CDN/     │     │  Server         │
+│                 │<─────────│   Cloudflare)    │<────│                 │
+└─────────────────┘          │                  |     └─────────────────┘
+                             │  Can inspect     │ HTTP response   
+                             │  but not modify  │ signed w. WIT   
+                             │  the signed data │     
                              └──────────────────┘     
 ``` 
 
