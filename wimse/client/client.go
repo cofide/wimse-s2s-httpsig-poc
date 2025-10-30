@@ -126,6 +126,11 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
+	// Decode and inspect WIT returned by minispire
+	if !shared.AssertWIT(svid.WitSvid) {
+		panic("problem with WIT")
+	}
+
 	parsedToken, err := jwt.ParseSigned(svid.WitSvid, []jose.SignatureAlgorithm{jose.ES256})
 	if err != nil {
 		return nil, err

@@ -5,7 +5,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	pb "github.com/cofide/minispire/pkg/wimse"
 	"google.golang.org/grpc"
@@ -45,4 +47,47 @@ func ParseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
 	}
 
 	return parsedKey.(*ecdsa.PrivateKey), nil
+}
+
+func AssertWIT(wit string) bool {
+	parts := strings.Split(wit, ".")
+	header, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		fmt.Errorf("error decoding wit jws header: %v", err)
+		return false
+	}
+	var claimsHeader map[string]interface{}
+	if err := json.Unmarshal(header, &claimsHeader); err != nil {
+		fmt.Errorf("error unmarshaling wit header claims: %v", err)
+		return false
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		fmt.Errorf("error decoding wit jws payload: %v", err)
+		return false
+	}
+
+	var claimsPayload map[string]interface{}
+	if err := json.Unmarshal(payload, &claimsPayload); err != nil {
+		fmt.Errorf("error unmarshaling wit claims: %v", err)
+		return false
+	}
+
+	printWIT(claimsHeader, claimsPayload)
+
+	return true
+}
+
+func printWIT(header, payload map[string]interface{}) {
+	fmt.Println("WIT header and payload:")
+	prettyPrint(header)
+	prettyPrint(payload)
+	fmt.Println("")
+	fmt.Println("")
+}
+
+func prettyPrint(blob map[string]interface{}) {
+	pretty, _ := json.MarshalIndent(blob, "", "  ")
+	fmt.Printf(string(pretty))
 }
