@@ -126,6 +126,11 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
+	// Decode and inspect WIT returned by minispire
+	if err := shared.AssertWIT(svid.WitSvid); err != nil {
+		return nil, err
+	}
+
 	parsedToken, err := jwt.ParseSigned(svid.WitSvid, []jose.SignatureAlgorithm{jose.ES256})
 	if err != nil {
 		return nil, err
@@ -146,7 +151,7 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
-	req.Header.Set("workload-identity-token", svid.WitSvid)
+	req.Header.Set("Workload-Identity-Token", svid.WitSvid)
 
 	return httpsign.NewDefaultClient(httpsign.NewClientConfig().SetSignatureName("wimse").SetSigner(signer)), nil
 }
