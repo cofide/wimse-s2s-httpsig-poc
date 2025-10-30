@@ -96,11 +96,29 @@ func prettyPrint(blob map[string]interface{}) {
 }
 
 func validateWITHeader(data map[string]interface{}) error {
+	// Section 3.1 The Workload Identity Token
+	// A WIT MUST contain the following claims, except where noted
+	// in the JOSE header
+	// alg, typ
 	return mustContain(data, []string{"alg", "typ"})
 }
 
 func validateWITPayload(data map[string]interface{}) error {
-	return mustContain(data, []string{"iss", "sub", "exp", "jti", "cnf"})
+	// Section 3.1 The Workload Identity Token
+	// A WIT MUST contain the following claims, except where noted
+	// in the JWT claims
+	// iss, sub, exp, jti
+	// cnf { jwk { alg } }
+	err := mustContain(data, []string{"iss", "sub", "exp", "jti", "cnf"})
+	if err != nil {
+		return err
+	}
+	confirmation := data["cnf"].(map[string]interface{})
+	err = mustContain(confirmation, []string{"jwk"})
+	if err != nil {
+		return err
+	}
+	return mustContain(confirmation["jwk"].(map[string]interface{}), []string{"alg"})
 }
 
 func mustContain(data map[string]interface{}, keys []string) error {
