@@ -25,15 +25,6 @@ func WithClaims(claims *jwt.Claims) SignerOption {
 	}
 }
 
-// WithKeyID sets the key ID returned as a signature parameter
-func WithKeyID(keyID string) SignerOption {
-	return func(cfg *httpsign.SignConfig) {
-		if keyID != "" {
-			cfg.SetKeyID(keyID)
-		}
-	}
-}
-
 func GetWITHTTPSigner(witSVIDKey string, signedHeaders []string, opts ...SignerOption) (*httpsign.Signer, error) {
 	cfg := httpsign.NewSignConfig().
 		SetTag("wimse-service-to-service")
