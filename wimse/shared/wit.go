@@ -49,34 +49,38 @@ func ParseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
 	return parsedKey.(*ecdsa.PrivateKey), nil
 }
 
-func AssertWIT(wit string) bool {
+func AssertWIT(wit string) error {
 	parts := strings.Split(wit, ".")
 	header, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		fmt.Errorf("error decoding wit jws header: %v", err)
-		return false
+		return err
 	}
 	var claimsHeader map[string]interface{}
 	if err := json.Unmarshal(header, &claimsHeader); err != nil {
-		fmt.Errorf("error unmarshaling wit header claims: %v", err)
-		return false
+		return err
 	}
 
 	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		fmt.Errorf("error decoding wit jws payload: %v", err)
-		return false
+		return err
 	}
 
 	var claimsPayload map[string]interface{}
 	if err := json.Unmarshal(payload, &claimsPayload); err != nil {
-		fmt.Errorf("error unmarshaling wit claims: %v", err)
-		return false
+		return err
+	}
+
+	if err := mustContain(claimsHeader, []string{"alg", "typ"}); err != nil {
+		return err
+	}
+
+	if err := mustContain(claimsPayload, []string{"iss", "sub", "exp", "jti", "cnf"}); err != nil {
+		return err
 	}
 
 	printWIT(claimsHeader, claimsPayload)
 
-	return true
+	return nil
 }
 
 func printWIT(header, payload map[string]interface{}) {
@@ -90,4 +94,20 @@ func printWIT(header, payload map[string]interface{}) {
 func prettyPrint(blob map[string]interface{}) {
 	pretty, _ := json.MarshalIndent(blob, "", "  ")
 	fmt.Printf(string(pretty))
+}
+
+func mustContain(data map[string]interface{}, keys []string) error {
+	var missing []string
+
+	for _, key := range keys {
+		_, ok := data[key]
+		if !ok {
+			missing = append(missing, key)
+		}
+	}
+
+	if len(missing) > 0 {
+		return fmt.Errorf("missing or empty required keys: %v", missing)
+	}
+	return nil
 }
