@@ -1,37 +1,35 @@
-# POC Demo of WIMSE S2S with HTTP Message Signatures
+# Proof-of-concept demo of WIMSE S2S with HTTP Message Signatures
 
-This is a POC implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). 
+This is a proof-of-concept (POC) implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). 
 
 [HTTP Message Signature](https://datatracker.ietf.org/doc/rfc9421/) is an adopted IETF standard (RFC 9421) with a mechanism to create and verify signatures for specific components of an HTTP message, allowing for message integrity verification even when the full message isn't known to the signer or has been modified by intermediaries.
 
-This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup. As the JWT-SVID and WIT resemble each other a lot at the time of writing, this demo is built on top of `minispire` with the addition of a gRPC call. We also switched the default to ECDSA certificates.
+This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup, and implements an approximation of the in-development WIT-SVID currently under consideration in SPIRE.
 
-We've developed this demo of WIMSE with HTTP Message Signatures to explore the use case of end-to-end authentication and signed messaging in the presence of a middlebox (e.g. L7 proxy).
-This is a use case we often see where using the more "traditional" mTLS approach is not feasible.
+In this example, we use WIMSE with HTTP Message Signatures to explore the use case of end-to-end authentication and signed messaging in the presence of a middlebox (e.g. L7 proxy). This is a use case often seen where using the more "traditional" mTLS approach is not feasible.
 
 ## How it works
 
 ```
                              ┌─────────────────┐
                              │                 │
-  +--------------------------│  Mini-Spire     │<-----------------------+
-  |                          │  Server         │                        |
-  |              +---------->│                 │-----------+            |
-  |              |           └─────────────────┘           |            |
-  │              |                                         │            |
-  │ Issues SVID  │ Sign JWT                                │ Issues SVID|
-  │ + JWT CA     │ POP                                     │  + JWT CA  | Sign JWT
-  │              │                                         │            | POP
-  ▼              │                                         ▼            |
-┌─────────────────┐          ┌──────────────────┐     ┌─────────────────┐
-│                 │          │                  │     │                 │
-│  WIMSE enabled  │─────────▶│    Middlebox     │────▶│  WIMSE enabled  │
-│  Client         │   HTTP   │  (e.g., CDN/     │     │  Server         │
-│                 │  Request │   Cloudflare)    │     │                 │
-└─────────────────┘   with   │                  |     └─────────────────┘
-                      HTTP   │  Can inspect     │     
-                      Sign   │  but not modify  │     
-                      + WIT  │  the signed data │     
+      +----------------------│   minispire     │-------------+
+      |                      │    Server       │             |             
+      |                      │                 │             |            
+      |                      └─────────────────┘             |            
+      │ Issues WIT-                                          │ Issues WIT-
+      │    SVID                                              │    SVID
+      │              HTTP                                    │     
+      ▼              request                                 ▼            
+┌─────────────────┐  signed  ┌──────────────────┐     ┌─────────────────┐
+│                 │  w. WIT  │                  │     │                 │
+│  WIMSE-enabled  │─────────>│    Middlebox     │────>│  WIMSE-enabled  │
+│  Client         │          │  (e.g., CDN/     │     │  Server         │
+│                 │<─────────│   Cloudflare)    │<────│                 │
+└─────────────────┘          │                  |     └─────────────────┘
+                             │  Can inspect     │ HTTP response   
+                             │  but not modify  │ signed w. WIT   
+                             │  the signed data │     
                              └──────────────────┘     
 ``` 
 
