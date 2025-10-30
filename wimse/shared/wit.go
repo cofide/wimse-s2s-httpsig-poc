@@ -75,7 +75,9 @@ func AssertWIT(wit string) error {
 	if err := json.Unmarshal(payload, &claimsPayload); err != nil {
 		return err
 	}
-	validateWITPayload(claimsPayload)
+	if err := validateWITPayload(claimsPayload); err != nil {
+		return err
+	}
 
 	printWIT(claimsHeader, claimsPayload)
 
@@ -113,24 +115,49 @@ func validateWITPayload(data map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	confirmation := data["cnf"].(map[string]interface{})
+	confirmation, ok := data["cnf"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid cnf")
+	}
+
 	err = mustContain(confirmation, []string{"jwk"})
 	if err != nil {
 		return err
 	}
-	return mustContain(confirmation["jwk"].(map[string]interface{}), []string{"alg"})
+	jwk, ok := confirmation["jwk"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid cnf.jwk")
+	}
+	return mustContain(jwk, []string{"alg"})
 }
 
 func mustContain(data map[string]interface{}, keys []string) error {
-	var missing []string
+	var missingOrEmpty []string
 	for _, key := range keys {
-		_, ok := data[key]
-		if !ok {
-			missing = append(missing, key)
+		val, ok := data[key]
+		if !ok || isEmpty(val) {
+			missingOrEmpty = append(missingOrEmpty, key)
 		}
 	}
-	if len(missing) > 0 {
-		return fmt.Errorf("missing required keys: %v", missing)
+	if len(missingOrEmpty) > 0 {
+		return fmt.Errorf("missing or empty required keys: %v", missingOrEmpty)
 	}
 	return nil
+}
+
+func isEmpty(val any) bool {
+	if val == nil {
+		return true
+	}
+
+	switch val.(type) {
+	case string:
+		return val == ""
+	case map[string]interface{}:
+		return len(val.(map[string]interface{})) == 0
+	case int, int64, float64:
+		return false
+	}
+
+	return true
 }
