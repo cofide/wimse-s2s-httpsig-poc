@@ -151,7 +151,7 @@ func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 		return nil, err
 	}
 
-	req.Header.Set("workload-identity-token", svid.WitSvid)
+	req.Header.Set("Workload-Identity-Token", svid.WitSvid)
 
 	return httpsign.NewDefaultClient(httpsign.NewClientConfig().SetSignatureName("wimse").SetSigner(signer)), nil
 }
