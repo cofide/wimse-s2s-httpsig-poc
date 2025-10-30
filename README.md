@@ -21,7 +21,7 @@ In this example, we use WIMSE with HTTP Message Signatures to explore the use ca
       │    SVID                                              │    SVID
       │              HTTP                                    │     
       ▼              request                                 ▼            
-┌─────────────-───┐  signed  ┌──────────────────┐     ┌─────────────────┐
+┌─────────────────┐  signed  ┌──────────────────┐     ┌─────────────────┐
 │                 │  w. WIT  │                  │     │                 │
 │  WIMSE enabled  │─────────>│    Middlebox     │────>│  WIMSE enabled  │
 │  Client         │          │  (e.g., CDN/     │     │  Server         │
