@@ -23,7 +23,7 @@ In this example, we use WIMSE with HTTP Message Signatures to explore the use ca
       ▼              request                                 ▼            
 ┌─────────────────┐  signed  ┌──────────────────┐     ┌─────────────────┐
 │                 │  w. WIT  │                  │     │                 │
-│  WIMSE enabled  │─────────>│    Middlebox     │────>│  WIMSE enabled  │
+│  WIMSE-enabled  │─────────>│    Middlebox     │────>│  WIMSE-enabled  │
 │  Client         │          │  (e.g., CDN/     │     │  Server         │
 │                 │<─────────│   Cloudflare)    │<────│                 │
 └─────────────────┘          │                  |     └─────────────────┘
