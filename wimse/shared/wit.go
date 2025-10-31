@@ -15,7 +15,7 @@ import (
 )
 
 // GetWITSVID retrieves a WIT SVID for the calling workload from an identity
-// server implementing a WIMSE-complian SPIFFE workload API. Running with minispire
+// server implementing a WIMSE-compliant SPIFFE workload API. Running with minispire
 // defaults to this address being unix:///tmp/spire.sock
 func GetWITSVID(spireAddr string) (*pb.WITSVID, error) {
 	cc, err := grpc.DialContext(context.TODO(), spireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
