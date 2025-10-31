@@ -8,6 +8,8 @@ import (
 type SignerOption func(*httpsign.SignConfig)
 
 // WithNonce sets the nonce in the signer config
+// Note that a unique nonce is the responsibility of the request sender per the WIMSE S2S draft
+// https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#section-3.3-14
 func WithNonce(nonce string) SignerOption {
 	return func(cfg *httpsign.SignConfig) {
 		if nonce != "" {
@@ -25,15 +27,17 @@ func WithClaims(claims *jwt.Claims) SignerOption {
 	}
 }
 
+// GetWITHTTPSigner takes a witSVIDKey (i.e. the private key provided by the identity server
+// issuing WIT-SVIDs) in string format and a slice of signed headers before returning an
+// httpsign.Signer instance to make WIMSE HTTP signatures requests with
 func GetWITHTTPSigner(witSVIDKey string, signedHeaders []string, opts ...SignerOption) (*httpsign.Signer, error) {
-	cfg := httpsign.NewSignConfig().
-		SetTag("wimse-service-to-service")
+	cfg := httpsign.NewSignConfig().SetTag("wimse-service-to-service")
 
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
-	parsedWITSVIDKey, err := ParseWITSVIDKey(witSVIDKey)
+	parsedWITSVIDKey, err := parseWITSVIDKey(witSVIDKey)
 	if err != nil {
 		return nil, err
 	}
