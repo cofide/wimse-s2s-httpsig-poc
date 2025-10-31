@@ -14,8 +14,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// GetWITSVID retrieves a WIT SVID for the calling workload from an identity
+// server implementing a WIMSE-compliant SPIFFE workload API. Running with minispire
+// defaults to this address being unix:///tmp/spire.sock
 func GetWITSVID(spireAddr string) (*pb.WITSVID, error) {
-	// dial the SpiffeAddr with gRPC
 	cc, err := grpc.DialContext(context.TODO(), spireAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("unable to dial socket: %w", err)
@@ -35,7 +37,9 @@ func GetWITSVID(spireAddr string) (*pb.WITSVID, error) {
 	return svids[0], nil
 }
 
-func ParseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
+// parseWITSVIDKey takes a private key encoded as a string, parses it,
+// and returns for use ahead of HTTP signing operations for the message signature
+func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
 	keyBytes, err := base64.StdEncoding.DecodeString(encoded)
 	if err != nil {
 		return nil, fmt.Errorf("failed to base64-decode key: %v", err)
@@ -49,6 +53,9 @@ func ParseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
 	return parsedKey.(*ecdsa.PrivateKey), nil
 }
 
+// AssertWIT takes a string representation of the workload identity token and asserts
+// its contents based on the WIMSE S2S draft conditions for the JWS claims
+// https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-the-workload-identity-token
 func AssertWIT(wit string) error {
 	parts := strings.Split(wit, ".")
 	if len(parts) != 3 {
@@ -149,7 +156,6 @@ func isEmpty(val any) bool {
 	if val == nil {
 		return true
 	}
-
 	switch val.(type) {
 	case string:
 		return val == ""
@@ -158,6 +164,5 @@ func isEmpty(val any) bool {
 	case int, int64, float64:
 		return false
 	}
-
 	return true
 }
