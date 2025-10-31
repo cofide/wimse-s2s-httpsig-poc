@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -66,7 +65,7 @@ func (s *Server) getHttp() *http.Server {
 		s.EnsureSpire()
 		s.WaitReady()
 
-		jwt, err := jose.ParseSigned(r.Header.Get("workload-identity-token"), []jose.SignatureAlgorithm{jose.ES256})
+		jwt, err := jose.ParseSigned(r.Header.Get("Workload-Identity-Token"), []jose.SignatureAlgorithm{jose.ES256})
 		if err != nil {
 			log.Printf("Invalid token: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -92,8 +91,6 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		slog.Info("wit", "wit", r.Header.Get("workload-identity-token"))
-
 		keyBytes := payload.Cnf.Jwk.Key.([]byte)
 		pubInterface, err := x509.ParsePKIXPublicKey(keyBytes)
 		if err != nil {
@@ -103,7 +100,10 @@ func (s *Server) getHttp() *http.Server {
 		}
 		clientEcdsa := pubInterface.(*ecdsa.PublicKey)
 
-		verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers("@request-target", "Workload-Identity-Token"))
+		verifier, err := httpsign.NewP256Verifier(*clientEcdsa,
+			httpsign.NewVerifyConfig().SetKeyID("wimse"),
+			httpsign.Headers("@request-target", "@method", "Workload-Identity-Token"),
+		)
 		if err != nil {
 			log.Printf("Unable to create verifier: %v\n", err)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -126,16 +126,16 @@ func (s *Server) getHttp() *http.Server {
 
 		capture := httptest.NewRecorder()
 		upstreamHandler.ServeHTTP(capture, r)
-
 		resp := capture.Result()
-		resp.Header.Set("workload-identity-token", svid.WitSvid)
+		resp.Header.Set("Workload-Identity-Token", svid.WitSvid)
+		resp.Header.Set("Content-Length", fmt.Sprintf("%d", capture.Body.Len()))
+		resp.Request = r
 
-		resp.Header.Set("content-length", fmt.Sprintf("%d", capture.Body.Len()))
 		if resp.Header.Get("Date") == "" {
 			resp.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 		}
 
-		signedHeaders := []string{"@status", "date", "workload-identity-token"}
+		signedHeaders := []string{"@status", "@method;req", "@request-target;req", "Workload-Identity-Token"}
 		if resp.Body != nil {
 			digest, err := httpsign.GenerateContentDigestHeader(&resp.Body, []string{httpsign.DigestSha256})
 			if err != nil {
@@ -147,7 +147,7 @@ func (s *Server) getHttp() *http.Server {
 			signedHeaders = append(signedHeaders, "content-digest")
 		}
 
-		mustSignIfPresent := []string{"content-type", "content-length", "authorization", "txn-token"}
+		mustSignIfPresent := []string{"Content-Type", "Content-Digest"}
 		for _, header := range mustSignIfPresent {
 			if resp.Header.Get(header) != "" {
 				signedHeaders = append(signedHeaders, header)

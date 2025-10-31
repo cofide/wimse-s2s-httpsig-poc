@@ -111,10 +111,10 @@ func (c *Client) GetWITSVID() (*pb.WITSVID, error) {
 func (c *Client) getHttp(req *http.Request) (*httpsign.Client, error) {
 	signedHeaders := []string{"@method", "@request-target", "Workload-Identity-Token"}
 	if req.Body != nil {
-		signedHeaders = append(signedHeaders, "content-digest")
+		signedHeaders = append(signedHeaders, "Content-Digest")
 	}
 
-	mustSignIfPresent := []string{"content-type", "authorization", "Txn-Token"}
+	mustSignIfPresent := []string{"Content-Type", "Authorization", "Txn-Token"}
 	for _, header := range mustSignIfPresent {
 		if req.Header.Get(header) != "" {
 			signedHeaders = append(signedHeaders, header)
