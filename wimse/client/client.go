@@ -21,7 +21,6 @@ import (
 	"github.com/cofide/wimse-s2s-httpsig-poc/wimse/shared"
 	"github.com/go-jose/go-jose/v4"
 	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/spiffe/go-spiffe/v2/spiffeid"
 	"github.com/spiffe/go-spiffe/v2/spiffetls/tlsconfig"
 	"github.com/yaronf/httpsign"
 )
@@ -204,11 +203,6 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 	if err := json.Unmarshal(jwt.UnsafePayloadWithoutVerification(), &payload); err != nil {
 		return nil, fmt.Errorf("invalid payload: %w", err)
-	}
-
-	_, err = spiffeid.FromString(payload.Sub)
-	if err != nil {
-		return nil, fmt.Errorf("invalid SPIFFE ID: %w", err)
 	}
 
 	keyBytes := payload.Cnf.Jwk.Key.([]byte)
