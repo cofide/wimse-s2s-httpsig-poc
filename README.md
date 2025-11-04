@@ -44,7 +44,7 @@ sequenceDiagram
     participant B as Recipient (B)
 
     %% === Issue WIT ===
-    ID ->> A: **Issue WIT**
+    ID ->> A: <b>Issue WIT</b>
     Note right of A: The identity server issues<br/>a Workload Identity Token (WIT)<br/>bound to A’s public key (cnf)
 
     %% === Authenticated Request ===
