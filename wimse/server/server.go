@@ -85,13 +85,6 @@ func (s *Server) getHttp() *http.Server {
 			return
 		}
 
-		_, err = spiffeid.FromString(payload.Sub)
-		if err != nil {
-			log.Printf("Invalid SPIFFE ID: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
 		slog.Info("wit", "wit", r.Header.Get("workload-identity-token"))
 
 		keyBytes := payload.Cnf.Jwk.Key.([]byte)

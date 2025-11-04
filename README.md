@@ -39,7 +39,7 @@ In this example, we use WIMSE with HTTP Message Signatures to explore the use ca
 
 To run the demo you need to run a `cofide/minispire` server:
 ```
-go run github.com/cofide/minispire/cmd@v0.2.0
+go run github.com/cofide/minispire/cmd@v0.2.1
 ```
 
 Then in another terminal run the server:
@@ -73,7 +73,7 @@ WIT header and payload:
   "iat": 1761818061,
   "iss": "wimse://example.com",
   "jti": "69055e02f3172df4efcf9fbd4ffa1080a7c1ef63d7c9776beaef0a3ed2950658",
-  "sub": "spiffe://example.com/bin/wimse-9421-client/gid/1000/pid/38898/uid/1000"
+  "sub": "wimse://example.com/bin/wimse-9421-client/gid/1000/pid/162557/uid/1000"
 }
 
 Request:
