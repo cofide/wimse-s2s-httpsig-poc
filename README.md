@@ -46,7 +46,7 @@ sequenceDiagram
 
     %% === Authenticated Request ===
     A ->> B: Signed HTTP request<br/>(with WIT)
-    Note right of B: B receives the request and verifies:<br/>- HTTP signature integrity<br/>- WIT is valid and matches A’s public key (via cnf claim)
+    Note right of B: B receives the request and verifies:<br/>- HTTP signature integrity<br/>- WIT is valid and matches A’s public key<br/>(via cnf claim)
 
     B ->> B: Validate Request
     B -->> A: ✅ 200 OK – Authenticated
