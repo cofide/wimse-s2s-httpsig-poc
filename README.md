@@ -33,6 +33,24 @@ In this example, we use WIMSE with HTTP Message Signatures to explore the use ca
                              └──────────────────┘     
 ``` 
 
+A sequence diagram of the steps is provided:
+
+```mermaid
+sequenceDiagram
+    participant ID as Identity Server<br/>(minispire)
+    participant A as Caller (A)
+    participant B as Recipient (B)
+
+    ID ->> A: Issues WIT
+    Note right of A: Identity server issues<br/>a Workload Identity Token (WIT)<br/>bound to A’s public key
+
+    %% === Authenticated Request ===
+    A ->> B: Signed HTTP request<br/>(with WIT)
+    Note right of B: B receives the request and verifies:<br/>- HTTP signature integrity<br/>- WIT is valid and matches A’s public key<br/>(via cnf claim)
+
+    B ->> B: Validate Request
+    B -->> A: ✅ 200 OK – Authenticated
+```
 
 
 ## Running the demo
