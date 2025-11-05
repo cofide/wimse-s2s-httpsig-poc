@@ -37,18 +37,18 @@ A sequence diagram of the steps is provided:
 
 ```mermaid
 sequenceDiagram
-    participant ID as Identity Server (minispire)
+    participant ID as Identity Server<br/>(minispire)
     participant A as Caller (A)
     participant B as Recipient (B)
 
-    ID ->> A: Issue WIT
-    Note right of A: Identity server issues<br/>a Workload Identity Token (WIT)<br/>bound to A’s public key (cnf)
+    ID ->> A: Issues WIT
+    Note right of A: Identity server issues<br/>a Workload Identity Token (WIT)<br/>bound to A’s public key
 
     %% === Authenticated Request ===
-    A ->> B: HTTP Message Signature<br/>(Request + WIT)
-    Note right of B: B receives the request and verifies:<br/>- HTTP signature integrity<br/>- WIT is valid and matches A’s key (cnf)
+    A ->> B: Signed HTTP request<br/>(with WIT)
+    Note right of B: B receives the request and verifies:<br/>- HTTP signature integrity<br/>- WIT is valid and matches A’s public key (via cnf claim)
 
-    B ->> B: Validate Request with cnf
+    B ->> B: Validate Request
     B -->> A: ✅ 200 OK – Authenticated
 ```
 
