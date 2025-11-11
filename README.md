@@ -98,7 +98,7 @@ Request:
 GET  HTTP/1.1
 Workload-Identity-Token: eyJhbGciOiJFUzI1NiIsImtpZCI6ImtpZCIsInR5cCI6IndpdCtqd3QifQ.eyJhdWQiOiIiLCJjbmYiOnsiandrIjp7InVzZSI6InNpZyIsImt0eSI6Im9jdCIsImFsZyI6IkVTMjU2IiwiayI6Ik1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEUWdBRXU1bFRDdGZZeEN3YXZEejVzR2JhVUVXakFVamVLREpGdDkzemlCS0kyREhza1BuM0ZqcTdJWlMtUzlBLWwxSVB6cWtsYWRTVy13WWtwWDFMNmE5a3ZnIn19LCJleHAiOjE3NjE4MTgzNjEsImlhdCI6MTc2MTgxODA2MSwiaXNzIjoid2ltc2U6Ly9leGFtcGxlLmNvbSIsImp0aSI6IjY5MDU1ZTAyZjMxNzJkZjRlZmNmOWZiZDRmZmExMDgwYTdjMWVmNjNkN2M5Nzc2YmVhZWYwYTNlZDI5NTA2NTgiLCJzdWIiOiJzcGlmZmU6Ly9leGFtcGxlLmNvbS9iaW4vd2ltc2UtOTQyMS1jbGllbnQvZ2lkLzEwMDAvcGlkLzM4ODk4L3VpZC8xMDAwIn0.eaXvxpXYrXi0SWEt38R_jhXc_Hjfgt4UdhT1GMeWVU22mFk4iaKT638yIfHkYnGbYdK0u4sxDRPqm0ha_hvkpw
 Signature: wimse=:uYOTjb4eKf2cBn4TyeViFtdZ8cfLZFhrGRw93XdWH/PlbsB182z3/RpeAaeKQuYepMpvxfjr+L2UG/VYv7ql8Q==:
-Signature-Input: wimse=("@method" "@request-target" "workload-identity-token");created=1761818061;expires=1761818361;nonce="ce5ce6ca2cf748677c5198ffa72f2906a1e3f3eaaf9a8487eea551f2ca469ef0";alg="ecdsa-p256-sha256";tag="wimse-service-to-service"
+Signature-Input: wimse=("@method" "@request-target" "workload-identity-token");created=1761818061;expires=1761818361;nonce="ce5ce6ca2cf748677c5198ffa72f2906a1e3f3eaaf9a8487eea551f2ca469ef0";alg="ecdsa-p256-sha256";tag="wimse-workload-to-workload"
 
 Response:
 HTTP/1.1 200 OK
@@ -108,7 +108,7 @@ Content-Length: 23
 Content-Type: text/plain; charset=utf-8
 Date: Thu, 30 Oct 2025 09:54:21 GMT
 Signature: wimse=:YKMb/G/k0t9aTeqK//t7BD2P7uWW9Ph+E3SOqPRREFRn7vDu9keUkBlYPeWfMgmOoUZ8JYVzS2wn4z71XIcW+A==:
-Signature-Input: wimse=("@status" "date" "workload-identity-token" "content-digest" "content-type" "content-length");created=1761818061;alg="ecdsa-p256-sha256";tag="wimse-service-to-service"
+Signature-Input: wimse=("@status" "date" "workload-identity-token" "content-digest" "content-type" "content-length");created=1761818061;alg="ecdsa-p256-sha256";tag="wimse-workload-to-workload"
 You are very WIMSEcal!
 ```
 
