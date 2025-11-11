@@ -1,10 +1,10 @@
 # Proof-of-concept demo of WIMSE S2S with HTTP Message Signatures
 
-This is a proof-of-concept (POC) implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). 
+This is a proof-of-concept (POC) implementation of [WIMSE Workload-to-Workload Authentication with HTTP Signatures](https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/) protocol. 
 
 [HTTP Message Signature](https://datatracker.ietf.org/doc/rfc9421/) is an adopted IETF standard (RFC 9421) with a mechanism to create and verify signatures for specific components of an HTTP message, allowing for message integrity verification even when the full message isn't known to the signer or has been modified by intermediaries.
 
-This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup, and implements an approximation of the in-development WIT-SVID currently under consideration in SPIRE.
+This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-creds-00.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup, and implements an approximation of the in-development WIT-SVID currently under consideration in SPIRE.
 
 In this example, we use WIMSE with HTTP Message Signatures to explore the use case of end-to-end authentication and signed messaging in the presence of a middlebox (e.g. L7 proxy). This is a use case often seen where using the more "traditional" mTLS approach is not feasible.
 
