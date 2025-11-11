@@ -1,4 +1,4 @@
-# Proof-of-concept demo of WIMSE S2S with HTTP Message Signatures
+# Proof-of-concept demo of WIMSE Workload-to-Workload with HTTP Signatures
 
 This is a proof-of-concept (POC) implementation of [WIMSE Workload-to-Workload Authentication with HTTP Signatures](https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/) protocol. 
 
