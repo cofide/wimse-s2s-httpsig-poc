@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -86,15 +85,7 @@ func (s *Server) getHttp() *http.Server {
 		}
 
 		slog.Info("wit", "wit", r.Header.Get("workload-identity-token"))
-
-		keyBytes := payload.Cnf.Jwk.Key.([]byte)
-		pubInterface, err := x509.ParsePKIXPublicKey(keyBytes)
-		if err != nil {
-			log.Printf("failed to parse public key: %v", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		clientEcdsa := pubInterface.(*ecdsa.PublicKey)
+		clientEcdsa := payload.Cnf.Jwk.Key.(*ecdsa.PublicKey)
 
 		verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers("@request-target", "Workload-Identity-Token"))
 		if err != nil {
