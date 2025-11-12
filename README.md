@@ -82,9 +82,11 @@ WIT header and payload:
   "cnf": {
     "jwk": {
       "alg": "ES256",
-      "k": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEu5lTCtfYxCwavDz5sGbaUEWjAUjeKDJFt93ziBKI2DHskPn3Fjq7IZS-S9A-l1IPzqkladSW-wYkpX1L6a9kvg",
-      "kty": "oct",
-      "use": "sig"
+      "crv": "P-256",
+      "kty": "EC",
+      "use": "sig",
+      "x": "XY5nlJAn3M6UVJk-kCUQj9EAGHS2v9rJDXbQ_WqvjkQ",
+      "y": "v-gMoFmV65_HDmtim9q0rGkPDvk-eGSPdqLsFzhukMc"
     }
   },
   "exp": 1761818361,
