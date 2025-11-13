@@ -128,7 +128,7 @@ func (s *Server) getHttp() *http.Server {
 			digest, err := httpsign.GenerateContentDigestHeader(&resp.Body, []string{httpsign.DigestSha256})
 			if err != nil {
 				log.Printf("Unable to generate content digest: %v\n", err)
-				wimseError(w)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 			resp.Header.Set("content-digest", digest)
@@ -148,13 +148,13 @@ func (s *Server) getHttp() *http.Server {
 
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
-			wimseError(w)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		sigInput, sig, err := httpsign.SignResponse("wimse", *signer, resp, r)
 		if err != nil {
 			log.Printf("Unable to sign response: %v\n", err)
-			wimseError(w)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
