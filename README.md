@@ -1,10 +1,10 @@
-# Proof-of-concept demo of WIMSE S2S with HTTP Message Signatures
+# Proof-of-concept demo of WIMSE Workload-to-Workload Authentication with HTTP Signatures
 
-This is a proof-of-concept (POC) implementation of [WIMSE Service to Service Authentication](https://datatracker.ietf.org/doc/draft-ietf-wimse-s2s-protocol/) protocol [Option 2: Authentication Based on HTTP Message Signatures](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-option-2-authentication-bas). 
+This is a proof-of-concept (POC) implementation of [WIMSE Workload-to-Workload Authentication with HTTP Signatures](https://datatracker.ietf.org/doc/draft-ietf-wimse-http-signature/) protocol. 
 
 [HTTP Message Signature](https://datatracker.ietf.org/doc/rfc9421/) is an adopted IETF standard (RFC 9421) with a mechanism to create and verify signatures for specific components of an HTTP message, allowing for message integrity verification even when the full message isn't known to the signer or has been modified by intermediaries.
 
-This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-s2s-protocol-07.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup, and implements an approximation of the in-development WIT-SVID currently under consideration in SPIRE.
+This POC utilises [minispire](https://github.com/cofide/minispire), a lightweight SPIFFE implementation that has been extended to issue [WIMSE Workload Identity Token (WIT)](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-creds-00.html#name-the-workload-identity-token) SVIDs to a demo client and server. `minispire` provides a simple way to get workload identities issued without the need of a whole SPIRE setup, and implements an approximation of the in-development WIT-SVID currently under consideration in SPIRE.
 
 In this example, we use WIMSE with HTTP Message Signatures to explore the use case of end-to-end authentication and signed messaging in the presence of a middlebox (e.g. L7 proxy). This is a use case often seen where using the more "traditional" mTLS approach is not feasible.
 
@@ -100,7 +100,7 @@ Request:
 GET  HTTP/1.1
 Workload-Identity-Token: eyJhbGciOiJFUzI1NiIsImtpZCI6ImtpZCIsInR5cCI6IndpdCtqd3QifQ.eyJhdWQiOiIiLCJjbmYiOnsiandrIjp7InVzZSI6InNpZyIsImt0eSI6Im9jdCIsImFsZyI6IkVTMjU2IiwiayI6Ik1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEUWdBRXU1bFRDdGZZeEN3YXZEejVzR2JhVUVXakFVamVLREpGdDkzemlCS0kyREhza1BuM0ZqcTdJWlMtUzlBLWwxSVB6cWtsYWRTVy13WWtwWDFMNmE5a3ZnIn19LCJleHAiOjE3NjE4MTgzNjEsImlhdCI6MTc2MTgxODA2MSwiaXNzIjoid2ltc2U6Ly9leGFtcGxlLmNvbSIsImp0aSI6IjY5MDU1ZTAyZjMxNzJkZjRlZmNmOWZiZDRmZmExMDgwYTdjMWVmNjNkN2M5Nzc2YmVhZWYwYTNlZDI5NTA2NTgiLCJzdWIiOiJzcGlmZmU6Ly9leGFtcGxlLmNvbS9iaW4vd2ltc2UtOTQyMS1jbGllbnQvZ2lkLzEwMDAvcGlkLzM4ODk4L3VpZC8xMDAwIn0.eaXvxpXYrXi0SWEt38R_jhXc_Hjfgt4UdhT1GMeWVU22mFk4iaKT638yIfHkYnGbYdK0u4sxDRPqm0ha_hvkpw
 Signature: wimse=:uYOTjb4eKf2cBn4TyeViFtdZ8cfLZFhrGRw93XdWH/PlbsB182z3/RpeAaeKQuYepMpvxfjr+L2UG/VYv7ql8Q==:
-Signature-Input: wimse=("@method" "@request-target" "workload-identity-token");created=1761818061;expires=1761818361;nonce="ce5ce6ca2cf748677c5198ffa72f2906a1e3f3eaaf9a8487eea551f2ca469ef0";alg="ecdsa-p256-sha256";tag="wimse-service-to-service"
+Signature-Input: wimse=("@method" "@request-target" "workload-identity-token");created=1761818061;expires=1761818361;nonce="ce5ce6ca2cf748677c5198ffa72f2906a1e3f3eaaf9a8487eea551f2ca469ef0";alg="ecdsa-p256-sha256";tag="wimse-workload-to-workload"
 
 Response:
 HTTP/1.1 200 OK
@@ -110,7 +110,7 @@ Content-Length: 23
 Content-Type: text/plain; charset=utf-8
 Date: Thu, 30 Oct 2025 09:54:21 GMT
 Signature: wimse=:YKMb/G/k0t9aTeqK//t7BD2P7uWW9Ph+E3SOqPRREFRn7vDu9keUkBlYPeWfMgmOoUZ8JYVzS2wn4z71XIcW+A==:
-Signature-Input: wimse=("@status" "date" "workload-identity-token" "content-digest" "content-type" "content-length");created=1761818061;alg="ecdsa-p256-sha256";tag="wimse-service-to-service"
+Signature-Input: wimse=("@status" "date" "workload-identity-token" "content-digest" "content-type" "content-length");created=1761818061;alg="ecdsa-p256-sha256";tag="wimse-workload-to-workload"
 You are very WIMSEcal!
 ```
 
