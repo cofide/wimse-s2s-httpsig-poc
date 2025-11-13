@@ -31,7 +31,7 @@ func WithClaims(claims *jwt.Claims) SignerOption {
 // issuing WIT-SVIDs) in string format and a slice of signed headers before returning an
 // httpsign.Signer instance to make WIMSE HTTP signatures requests with
 func GetWITHTTPSigner(witSVIDKey string, signedHeaders []string, opts ...SignerOption) (*httpsign.Signer, error) {
-	cfg := httpsign.NewSignConfig().SetTag("wimse-service-to-service")
+	cfg := httpsign.NewSignConfig().SetTag("wimse-workload-to-workload")
 
 	for _, opt := range opts {
 		opt(cfg)

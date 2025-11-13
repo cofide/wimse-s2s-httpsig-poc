@@ -4,11 +4,9 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -205,13 +203,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("invalid payload: %w", err)
 	}
 
-	keyBytes := payload.Cnf.Jwk.Key.([]byte)
-	pubInterface, err := x509.ParsePKIXPublicKey(keyBytes)
-	if err != nil {
-		log.Printf("failed to parse public key: %v", err)
-		return nil, fmt.Errorf("unable to parse key: %w", err)
-	}
-	clientEcdsa := pubInterface.(*ecdsa.PublicKey)
+	clientEcdsa := payload.Cnf.Jwk.Key.(*ecdsa.PublicKey)
 
 	verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers())
 	if err != nil {

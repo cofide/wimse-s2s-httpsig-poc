@@ -47,7 +47,7 @@ func parseWITSVIDKey(encoded string) (*ecdsa.PrivateKey, error) {
 
 	parsedKey, err := x509.ParsePKCS8PrivateKey(keyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse public key: %v", err)
+		return nil, fmt.Errorf("failed to parse private key: %v", err)
 	}
 
 	return parsedKey.(*ecdsa.PrivateKey), nil
