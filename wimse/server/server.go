@@ -24,6 +24,10 @@ import (
 	"github.com/yaronf/httpsign"
 )
 
+func wimseError(w http.ResponseWriter) {
+	http.Error(w, "Bad request", http.StatusBadRequest)
+}
+
 type Server struct {
 	// internal HTTP server
 	http *http.Server
@@ -68,7 +72,7 @@ func (s *Server) getHttp() *http.Server {
 		jwt, err := jose.ParseSigned(r.Header.Get("workload-identity-token"), []jose.SignatureAlgorithm{jose.ES256})
 		if err != nil {
 			log.Printf("Invalid token: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			wimseError(w)
 			return
 		}
 
@@ -80,7 +84,7 @@ func (s *Server) getHttp() *http.Server {
 		}
 		if err := json.Unmarshal(jwt.UnsafePayloadWithoutVerification(), &payload); err != nil {
 			log.Printf("Invalid payload: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			wimseError(w)
 			return
 		}
 
@@ -90,21 +94,21 @@ func (s *Server) getHttp() *http.Server {
 		verifier, err := httpsign.NewP256Verifier(*clientEcdsa, httpsign.NewVerifyConfig().SetKeyID("wimse"), httpsign.Headers("@request-target", "Workload-Identity-Token"))
 		if err != nil {
 			log.Printf("Unable to create verifier: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			wimseError(w)
 			return
 		}
 
 		err = httpsign.VerifyRequest("wimse", *verifier, r)
 		if err != nil {
 			log.Printf("Invalid signature: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			wimseError(w)
 			return
 		}
 
 		svid, err := s.GetWITSVID()
 		if err != nil {
 			log.Printf("Unable to get WIT SVID: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			wimseError(w)
 			return
 		}
 
@@ -124,7 +128,7 @@ func (s *Server) getHttp() *http.Server {
 			digest, err := httpsign.GenerateContentDigestHeader(&resp.Body, []string{httpsign.DigestSha256})
 			if err != nil {
 				log.Printf("Unable to generate content digest: %v\n", err)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 			resp.Header.Set("content-digest", digest)
@@ -144,13 +148,13 @@ func (s *Server) getHttp() *http.Server {
 
 		if err != nil {
 			log.Printf("Unable to create signer: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		sigInput, sig, err := httpsign.SignResponse("wimse", *signer, resp, r)
 		if err != nil {
 			log.Printf("Unable to sign response: %v\n", err)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
